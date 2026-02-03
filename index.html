@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KK Wiki TextForge  — All-in-One Text Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS
+   ═══════════════════════════════════════════ */
+:root {
+  --bg:#0e0e12;
+  --surface:#181820;
+  --surface2:#1e1e28;
+  --surface-hl:#22222e;
+  --border:#2f2f3d;
+  --radius:12px;
+  --accent:#e8ff5a;
+  --accent-dim:rgba(232,255,90,.1);
+  --accent2:#ff6f5a;
+  --accent3:#5affe8;
+  --accent4:#bf8cff;
+  /* syntax tokens */
+  --tok-hd:#f1fa8c;
+  --tok-bd:#bd93f9;
+  --tok-it:#f1fa8c;
+  --tok-lk:#8be9fd;
+  --tok-tp:#ff79c6;
+  --tok-cm:#6272a4;
+  --tok-ls:#e8ff5a;
+  --tok-tb:rgba(255,255,255,.04);
+  --text:#f8f8f2;
+  --text-dim:#888899;
+  --glow:0 0 36px rgba(232,255,90,.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ═══ HERO ═══ */
+.hero{position:relative;padding:28px 20px 18px;text-align:center;background:linear-gradient(170deg,#12121c 0%,var(--bg) 100%);border-bottom:1px solid var(--border);overflow:hidden}
+.hero::before{content:'';position:absolute;top:-65px;left:50%;transform:translateX(-50%);width:680px;height:250px;background:radial-gradient(ellipse,rgba(232,255,90,.08) 0%,transparent 70%);pointer-events:none}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(1.55rem,3.8vw,2.3rem);font-weight:800;letter-spacing:-2px;position:relative}
+.hero h1 span{color:var(--accent)}
+.hero p{color:var(--text-dim);font-size:.83rem;margin-top:3px;font-weight:300;position:relative}
+.hero .ver{display:inline-block;font-size:.57rem;background:rgba(191,140,255,.14);color:var(--accent4);padding:2px 10px;border-radius:20px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;margin-top:5px;position:relative}
+
+/* ═══ LAYOUT ═══ */
+.layout{display:grid;grid-template-columns:222px 1fr;min-height:calc(100vh - 105px);max-width:1460px;margin:0 auto}
+
+/* ═══ SIDEBAR ═══ */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:11px 8px;overflow-y:auto;position:sticky;top:0;height:calc(100vh - 105px)}
+.sb-label{font-family:'Syne',sans-serif;font-size:.57rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--text-dim);padding:10px 6px 4px}
+.sb-label:first-child{padding-top:2px}
+.sb-div{height:1px;background:var(--border);margin:2px 0}
+.tool-btn{display:flex;align-items:center;gap:8px;width:100%;padding:8px 9px;border:1px solid transparent;background:transparent;color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:400;border-radius:8px;cursor:pointer;transition:all .16s;text-align:left}
+.tool-btn:hover{background:var(--surface-hl);color:var(--text)}
+.tool-btn.active{background:linear-gradient(135deg,rgba(232,255,90,.11),rgba(90,255,232,.05));color:var(--accent);font-weight:500;border-color:rgba(232,255,90,.2)}
+.tool-btn.active.wiki-act{background:linear-gradient(135deg,rgba(191,140,255,.14),rgba(90,255,232,.05));color:var(--accent4);border-color:rgba(191,140,255,.25)}
+.tool-btn .ico{font-size:.92rem;width:18px;text-align:center}
+
+/* ═══ MAIN ═══ */
+.main{display:flex;flex-direction:column;padding:16px;gap:13px;min-width:0}
+.tool-panel{display:none;flex-direction:column;gap:12px;animation:fadeIn .2s ease}
+.tool-panel.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* panel header */
+.panel-header{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.panel-header h2{font-family:'Syne',sans-serif;font-size:1.18rem;font-weight:700;letter-spacing:-.5px}
+.badge{font-size:.57rem;padding:2px 7px;border-radius:20px;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.badge.creative{background:rgba(232,255,90,.11);color:var(--accent)}
+.badge.transform{background:rgba(90,255,232,.11);color:var(--accent3)}
+.badge.analysis{background:rgba(255,111,90,.11);color:var(--accent2)}
+.badge.utility{background:rgba(191,140,255,.11);color:var(--accent4)}
+.badge.extractor{background:rgba(90,255,232,.09);color:var(--accent3)}
+.badge.wiki{background:rgba(191,140,255,.15);color:var(--accent4)}
+
+/* ─── generic textarea ─── */
+textarea{width:100%;min-height:180px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.84rem;line-height:1.6;padding:14px;resize:vertical;outline:none;transition:border-color .2s}
+textarea:focus{border-color:rgba(232,255,90,.32);box-shadow:var(--glow)}
+textarea::placeholder{color:var(--text-dim)}
+
+/* ─── buttons ─── */
+.btn-row{display:flex;flex-wrap:wrap;gap:6px}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;border-radius:7px;cursor:pointer;transition:all .14s}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(232,255,90,.05)}
+.btn.primary{background:var(--accent);color:#0e0e12;border-color:var(--accent);font-weight:600}
+.btn.primary:hover{background:#d4e84d;box-shadow:0 0 14px rgba(232,255,90,.25)}
+.btn.accent2{border-color:var(--accent2);color:var(--accent2)}.btn.accent2:hover{background:rgba(255,111,90,.08)}
+.btn.accent3{border-color:var(--accent3);color:var(--accent3)}.btn.accent3:hover{background:rgba(90,255,232,.08)}
+.btn.accent4{border-color:var(--accent4);color:var(--accent4)}.btn.accent4:hover{background:rgba(191,140,255,.08)}
+.btn.export-btn{border-color:#3a8c6e;color:#5fd4a4;background:rgba(95,212,164,.05)}.btn.export-btn:hover{background:rgba(95,212,164,.14);border-color:#5fd4a4;color:#fff}
+
+/* ─── stats ─── */
+.stats-bar{display:flex;flex-wrap:wrap;gap:8px}
+.stat-card{flex:1 1 85px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 13px;min-width:85px}
+.stat-card .label{font-size:.64rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-weight:500}
+.stat-card .value{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;color:var(--accent);margin-top:1px}
+
+/* ─── inputs ─── */
+.input-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.input-group{display:flex;flex-direction:column;gap:3px;flex:1;min-width:112px}
+.input-group label{font-size:.68rem;color:var(--text-dim);font-weight:500;letter-spacing:.5px}
+.input-group input,.input-group select{background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.81rem;padding:6px 10px;outline:none;transition:border-color .2s}
+.input-group input:focus,.input-group select:focus{border-color:rgba(232,255,90,.32)}
+.input-group select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23888899' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:25px}
+.input-group select option{background:var(--surface2);color:var(--text)}
+
+/* ─── result box ─── */
+.result-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+.result-label{font-size:.63rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.1px;font-weight:600;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;gap:5px;flex-wrap:wrap}
+.label-actions{display:flex;gap:4px}
+.result-content{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--text);white-space:pre-wrap;word-break:break-all;line-height:1.6;max-height:250px;overflow-y:auto}
+.copy-btn{font-size:.63rem;background:rgba(232,255,90,.09);color:var(--accent);border:1px solid rgba(232,255,90,.23);padding:2px 8px;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;transition:all .14s}
+.copy-btn:hover{background:rgba(232,255,90,.19)}
+.copy-btn.copied{background:rgba(90,255,232,.13);color:var(--accent3);border-color:rgba(90,255,232,.28)}
+.export-mini{font-size:.62rem;padding:2px 7px;border-radius:4px;border:1px solid #3a8c6e;background:rgba(95,212,164,.06);color:#5fd4a4;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;transition:all .14s}
+.export-mini:hover{background:rgba(95,212,164,.17);color:#fff}
+
+/* ─── extractor tags ─── */
+.tag-list{display:flex;flex-wrap:wrap;gap:4px}
+.tag{background:rgba(90,255,232,.07);border:1px solid rgba(90,255,232,.19);color:var(--accent3);font-family:'JetBrains Mono',monospace;font-size:.74rem;padding:3px 8px;border-radius:5px}
+.tag.email{background:rgba(232,255,90,.07);border-color:rgba(232,255,90,.2);color:var(--accent)}
+.tag.phone{background:rgba(255,111,90,.07);border-color:rgba(255,111,90,.2);color:var(--accent2)}
+.highlight-match{background:rgba(232,255,90,.27);border-radius:3px}
+
+/* ═══════════════════════════════════════════
+   WIKI EDITOR — SYNTAX HIGHLIGHT LAYER
+   ═══════════════════════════════════════════ */
+.wiki-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px}
+
+/* Toolbar */
+.wiki-toolbar{background:var(--surface-hl);border:1px solid var(--border);border-radius:9px;padding:7px 9px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.tb-btn{background:var(--surface);border:1px solid var(--border);color:var(--text-dim);border-radius:5px;min-width:30px;height:30px;padding:0 7px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.8rem;transition:all .14s;position:relative;white-space:nowrap}
+.tb-btn:hover{border-color:var(--accent4);color:var(--accent4);background:rgba(191,140,255,.09)}
+/* tooltip */
+.tb-btn::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);background:var(--bg);border:1px solid var(--border);color:var(--text);padding:3px 7px;border-radius:4px;font-size:.64rem;white-space:nowrap;font-family:'DM Sans',sans-serif;pointer-events:none;opacity:0;transition:opacity .16s;z-index:40}
+.tb-btn:hover::after{opacity:1}
+.tb-div{width:1px;height:20px;background:var(--border);margin:0 2px;align-self:center}
+.tb-lbl{font-size:.56rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-family:'DM Sans',sans-serif;font-weight:600;padding:0 2px;align-self:center}
+
+/* Code wrap — the two-layer trick */
+.code-wrap{position:relative;width:100%;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:#101014;min-height:340px;transition:border-color .2s}
+.code-wrap:focus-within{border-color:rgba(232,255,90,.32);box-shadow:var(--glow)}
+.code-wrap textarea,.code-wrap pre{position:absolute;top:0;left:0;width:100%;height:100%;padding:16px 18px;margin:0;border:none;font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.65;white-space:pre-wrap;word-wrap:break-word;overflow:auto;tab-size:2}
+.code-wrap textarea{z-index:2;background:transparent;color:transparent;caret-color:var(--accent);outline:none;resize:none;border-radius:0}
+.code-wrap textarea::selection{background:rgba(232,255,90,.22);color:transparent}
+.code-wrap pre{z-index:1;pointer-events:none;color:var(--text);border-radius:0}
+
+/* Token colours */
+.t-hd{color:var(--tok-hd);font-weight:600}
+.t-bd{color:var(--tok-bd);font-weight:700}
+.t-it{color:var(--tok-it);font-style:italic}
+.t-lk{color:var(--tok-lk);text-decoration:underline;text-decoration-style:dotted}
+.t-tp{color:var(--tok-tp)}
+.t-cm{color:var(--tok-cm)}
+.t-ls{color:var(--tok-ls);font-weight:600}
+.t-tb{background:var(--tok-tb)}
+
+/* Wiki status bar */
+.wiki-status{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:6px 13px;font-size:.71rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace}
+.wiki-status .ws-btns{display:flex;gap:7px}
+
+/* ═══ COOL-TEXT grid ═══ */
+.style-preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:6px}
+.style-card{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px;cursor:pointer;transition:all .16s;text-align:center}
+.style-card:hover{border-color:var(--accent);background:rgba(232,255,90,.04)}
+.style-card.selected{border-color:var(--accent);background:rgba(232,255,90,.1);box-shadow:var(--glow)}
+.style-card .preview-text{font-size:.93rem;margin-bottom:2px}
+.style-card .style-name{font-size:.63rem;color:var(--text-dim)}
+
+/* ═══ TOAST ═══ */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--accent);color:var(--accent);padding:8px 17px;border-radius:9px;font-size:.78rem;font-weight:500;opacity:0;transform:translateY(12px);transition:all .25s cubic-bezier(.34,1.56,.64,1);z-index:999;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.45)}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:768px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto;display:flex;flex-wrap:wrap;gap:3px;padding:7px 8px;border-right:none;border-bottom:1px solid var(--border)}
+  .sb-label,.sb-div{display:none}
+  .tool-btn{padding:6px 7px;font-size:.74rem}
+  .main{padding:11px}
+  .code-wrap{min-height:260px}
+}
+/* scrollbar */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#3f3f52}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <h1>KK Text<span>Forge</span> Wiki</h1>
+  <p>All-in-One Text Editor · Wiki Markup · Extractors · Utilities</p>
+  <div class="ver">✦ v 3.0 — Syntax Highlight Edition</div>
+</div>
+
+<!-- ═══ LAYOUT ═══ -->
+<div class="layout">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="sb-label">📖 Wikipedia</div>
+  <button class="tool-btn active wiki-act" onclick="switchTool('wiki')" data-tool="wiki"><span class="ico">📖</span> Wiki Markup Editor</button>
+
+  <div class="sb-div"></div>
+  <div class="sb-label">✦ Text Tools</div>
+  <button class="tool-btn" onclick="switchTool('cool-text')" data-tool="cool-text"><span class="ico">✨</span> Cool Text Generator</button>
+  <button class="tool-btn" onclick="switchTool('capitalize')" data-tool="capitalize"><span class="ico">Aa</span> Capitalize Text</button>
+  <button class="tool-btn" onclick="switchTool('uppercase')" data-tool="uppercase"><span class="ico">AB</span> Uppercase Text</button>
+  <button class="tool-btn" onclick="switchTool('lowercase')" data-tool="lowercase"><span class="ico">ab</span> Lowercase Text</button>
+
+  <div class="sb-div"></div>
+  <div class="sb-label">📊 Counters</div>
+  <button class="tool-btn" onclick="switchTool('word-counter')" data-tool="word-counter"><span class="ico">📝</span> Word Counter</button>
+  <button class="tool-btn" onclick="switchTool('char-counter')" data-tool="char-counter"><span class="ico">🔤</span> Character Counter</button>
+
+  <div class="sb-div"></div>
+  <div class="sb-label">🔧 Utilities</div>
+  <button class="tool-btn" onclick="switchTool('find-replace')" data-tool="find-replace"><span class="ico">🔍</span> Find & Replace</button>
+  <button class="tool-btn" onclick="switchTool('sort-list')" data-tool="sort-list"><span class="ico">📋</span> Sort List</button>
+  <button class="tool-btn" onclick="switchTool('reverse-list')" data-tool="reverse-list"><span class="ico">🔄</span> Reverse List</button>
+  <button class="tool-btn" onclick="switchTool('prefix-suffix')" data-tool="prefix-suffix"><span class="ico">🏷️</span> Prefix / Suffix</button>
+
+  <div class="sb-div"></div>
+  <div class="sb-label">📤 Extractors</div>
+  <button class="tool-btn" onclick="switchTool('email-extractor')" data-tool="email-extractor"><span class="ico">📧</span> Email Extractor</button>
+  <button class="tool-btn" onclick="switchTool('phone-extractor')" data-tool="phone-extractor"><span class="ico">📱</span> Phone Extractor</button>
+  <button class="tool-btn" onclick="switchTool('url-extractor')" data-tool="url-extractor"><span class="ico">🔗</span> URL Extractor</button>
+</aside>
+
+<!-- ── MAIN ── -->
+<main class="main">
+
+<!-- ══════════════════ WIKI MARKUP EDITOR ══════════════════ -->
+<div class="tool-panel active" id="panel-wiki">
+  <div class="wiki-top">
+    <div class="panel-header"><h2>📖 Wiki Markup Editor</h2><span class="badge wiki">Syntax Highlight</span></div>
+    <div class="btn-row" style="margin:0">
+      <button class="btn export-btn" onclick="exportWikiTXT()">📄 Export .txt</button>
+      <button class="btn export-btn" onclick="exportWikiCSV()">📊 Export .csv</button>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="wiki-toolbar">
+    <span class="tb-lbl">Format</span>
+    <button class="tb-btn" data-tip="Bold (''')" onclick="wikiWrap(&quot;'''&quot;,&quot;'''&quot;,&quot;bold&quot;)"><b>B</b></button>
+    <button class="tb-btn" data-tip="Italic ('')" onclick="wikiWrap(&quot;''&quot;,&quot;''&quot;,&quot;italic&quot;)"><i>I</i></button>
+    <button class="tb-btn" data-tip="Bold Italic" onclick="wikiWrap(&quot;'''''&quot;,&quot;'''''&quot;,&quot;bold italic&quot;)"><b><i>BI</i></b></button>
+    <div class="tb-div"></div>
+
+    <span class="tb-lbl">Headings</span>
+    <button class="tb-btn" data-tip="Heading 2" onclick="wikiLine('== ','Heading 2',' ==')">H2</button>
+    <button class="tb-btn" data-tip="Heading 3" onclick="wikiLine('=== ','Heading 3',' ===')">H3</button>
+    <button class="tb-btn" data-tip="Heading 4" onclick="wikiLine('==== ','Heading 4',' ====')">H4</button>
+    <button class="tb-btn" data-tip="Heading 5" onclick="wikiLine('===== ','Heading 5',' =====')">H5</button>
+    <div class="tb-div"></div>
+
+    <span class="tb-lbl">Lists</span>
+    <button class="tb-btn" data-tip="Bullet List" onclick="wikiLine('* ','item','')">☰</button>
+    <button class="tb-btn" data-tip="Numbered List" onclick="wikiLine('# ','item','')">1.</button>
+    <button class="tb-btn" data-tip="Indent" onclick="wikiLine(': ','indented','')">⇥</button>
+    <button class="tb-btn" data-tip="Def. Term" onclick="wikiLine('; ','term','')">;</button>
+    <div class="tb-div"></div>
+
+    <span class="tb-lbl">Links</span>
+    <button class="tb-btn" data-tip="Internal Link [[]]" onclick="wikiInsertLink()">🔗</button>
+    <button class="tb-btn" data-tip="External Link [url]" onclick="wikiInsertExtLink()">🌐</button>
+    <button class="tb-btn" data-tip="Image" onclick="wikiInsertImage()">🖼️</button>
+    <button class="tb-btn" data-tip="Gallery" onclick="wikiInsertGallery()">🎞️</button>
+    <div class="tb-div"></div>
+
+    <span class="tb-lbl">Special</span>
+    <button class="tb-btn" data-tip="Template {{}}" onclick="wikiInsertTemplate()">{ }</button>
+    <button class="tb-btn" data-tip="Reference" onclick="wikiInsertRef()">Ref</button>
+    <button class="tb-btn" data-tip="Category" onclick="wikiInsertCategory()">Cat</button>
+    <button class="tb-btn" data-tip="&lt;nowiki&gt;" onclick="wikiWrap(&quot;&lt;nowiki&gt;&quot;,&quot;&lt;/nowiki&gt;&quot;,&quot;raw&quot;)">⟨⟩</button>
+    <button class="tb-btn" data-tip="HTML Comment" onclick="wikiInsertComment()"><!></button>
+    <button class="tb-btn" data-tip="Redirect" onclick="wikiInsertRedirect()">↪️</button>
+    <button class="tb-btn" data-tip="Signature" onclick="wikiInsertSig()">🖊️</button>
+    <div class="tb-div"></div>
+
+    <span class="tb-lbl">Insert</span>
+    <button class="tb-btn" data-tip="Wiki Table" onclick="wikiInsertTable()">Table</button>
+    <button class="tb-btn" data-tip="Infobox" onclick="wikiInsertInfobox()">Infobox</button>
+    <button class="tb-btn" data-tip="CSV → Table" onclick="wikiCSVtoTable()">CSV→</button>
+    <button class="tb-btn" data-tip="References Section" onclick="wikiInsertRefList()">Refs</button>
+  </div>
+
+  <!-- Syntax-highlighted editor -->
+  <div class="code-wrap" id="wikiCodeWrap">
+    <textarea id="wikiEditor" spellcheck="false" placeholder="Start writing your Wikipedia article here…&#10;&#10;Use the toolbar above or type wikitext directly.&#10;Syntax highlighting updates in real time."></textarea>
+    <pre id="wikiHighlight" aria-hidden="true"></pre>
+  </div>
+
+  <!-- Status bar -->
+  <div class="wiki-status">
+    <span id="wikiStats">Lines: 0 · Words: 0 · Chars: 0</span>
+    <div class="ws-btns">
+      <button class="btn" style="padding:3px 9px;font-size:.71rem" onclick="wikiClear()">Clear</button>
+      <button class="btn primary" style="padding:3px 9px;font-size:.71rem" onclick="wikiCopy()">Copy Wikitext</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ COOL TEXT ══════════ -->
+<div class="tool-panel" id="panel-cool-text">
+  <div class="panel-header"><h2>✨ Cool Text Generator</h2><span class="badge creative">Creative</span></div>
+  <div class="input-group" style="max-width:350px"><label>Enter your text</label><input type="text" id="cool-input" placeholder="Type something…" oninput="generateCoolPreviews()"/></div>
+  <div class="style-preview-grid" id="style-grid"></div>
+  <div class="result-box">
+    <div class="result-label">Generated Text<div class="label-actions"><button class="copy-btn" onclick="copyResult('cool-result')">Copy</button><button class="export-mini" onclick="exportTXT('cool-result','cool_text')">📄 TXT</button><button class="export-mini" onclick="exportCSV('cool-result','cool_text')">📊 CSV</button></div></div>
+    <div class="result-content" id="cool-result">Type above to see cool text styles…</div>
+  </div>
+</div>
+
+<!-- ══════════ CAPITALIZE ══════════ -->
+<div class="tool-panel" id="panel-capitalize">
+  <div class="panel-header"><h2>Aa Capitalize Text</h2><span class="badge transform">Transform</span></div>
+  <textarea id="cap-input" placeholder="Paste your text here…" oninput="capitalizeText()"></textarea>
+  <div class="btn-row"><button class="btn primary" onclick="capitalizeText()">Capitalize</button><button class="btn" onclick="clearIO('cap-input','cap-result')">Clear</button><button class="btn accent3" onclick="swapIO('cap-input','cap-result')">⇄ Swap</button></div>
+  <div class="result-box">
+    <div class="result-label">Result<div class="label-actions"><button class="copy-btn" onclick="copyResult('cap-result')">Copy</button><button class="export-mini" onclick="exportTXT('cap-result','capitalize')">📄 TXT</button><button class="export-mini" onclick="exportCSV('cap-result','capitalize')">📊 CSV</button></div></div>
+    <div class="result-content" id="cap-result"></div>
+  </div>
+</div>
+
+<!-- ══════════ UPPERCASE ══════════ -->
+<div class="tool-panel" id="panel-uppercase">
+  <div class="panel-header"><h2>AB Uppercase Text</h2><span class="badge transform">Transform</span></div>
+  <textarea id="up-input" placeholder="Paste your text here…" oninput="uppercaseText()"></textarea>
+  <div class="btn-row"><button class="btn primary" onclick="uppercaseText()">Uppercase</button><button class="btn" onclick="clearIO('up-input','up-result')">Clear</button><button class="btn accent3" onclick="swapIO('up-input','up-result')">⇄ Swap</button></div>
+  <div class="result-box">
+    <div class="result-label">Result<div class="label-actions"><button class="copy-btn" onclick="copyResult('up-result')">Copy</button><button class="export-mini" onclick="exportTXT('up-result','uppercase')">📄 TXT</button><button class="export-mini" onclick="exportCSV('up-result','uppercase')">📊 CSV</button></div></div>
+    <div class="result-content" id="up-result"></div>
+  </div>
+</div>
+
+<!-- ══════════ LOWERCASE ══════════ -->
+<div class="tool-panel" id="panel-lowercase">
+  <div class="panel-header"><h2>ab Lowercase Text</h2><span class="badge transform">Transform</span></div>
+  <textarea id="low-input" placeholder="Paste your text here…" oninput="lowercaseText()"></textarea>
+  <div class="btn-row"><button class="btn primary" onclick="lowercaseText()">Lowercase</button><button class="btn" onclick="clearIO('low-input','low-result')">Clear</button><button class="btn accent3" onclick="swapIO('low-input','low-result')">⇄ Swap</button></div>
+  <div class="result-box">
+    <div class="result-label">Result<div class="label-actions"><button class="copy-btn" onclick="copyResult('low-result')">Copy</button><button class="export-mini" onclick="exportTXT('low-result','lowercase')">📄 TXT</button><button class="export-mini" onclick="exportCSV('low-result','lowercase')">📊 CSV</button></div></div>
+    <div class="result-content" id="low-result"></div>
+  </div>
+</div>
+
+<!-- ══════════ WORD COUNTER ══════════ -->
+<div class="tool-panel" id="panel-word-counter">
+  <div class="panel-header"><h2>📝 Word Counter</h2><span class="badge analysis">Analysis</span></div>
+  <textarea id="wc-input" placeholder="Paste your text here…" oninput="countWords()"></textarea>
+  <div class="stats-bar">
+    <div class="stat-card"><div class="label">Words</div><div class="value" id="wc-words">0</div></div>
+    <div class="stat-card"><div class="label">Characters</div><div class="value" id="wc-chars">0</div></div>
+    <div class="stat-card"><div class="label">No Spaces</div><div class="value" id="wc-chars-ns">0</div></div>
+    <div class="stat-card"><div class="label">Lines</div><div class="value" id="wc-lines">0</div></div>
+    <div class="stat-card"><div class="label">Sentences</div><div class="value" id="wc-sentences">0</div></div>
+    <div class="stat-card"><div class="label">Paragraphs</div><div class="value" id="wc-para">0</div></div>
+  </div>
+  <div class="btn-row"><button class="btn" onclick="document.getElementById('wc-input').value='';countWords()">Clear</button><button class="btn export-btn" onclick="exportWordCountCSV()">📊 Export Stats CSV</button><button class="btn export-btn" onclick="exportTXT('wc-input','word_count')">📄 Export TXT</button></div>
+</div>
+
+<!-- ══════════ CHAR COUNTER ══════════ -->
+<div class="tool-panel" id="panel-char-counter">
+  <div class="panel-header"><h2>🔤 Character Counter</h2><span class="badge analysis">Analysis</span></div>
+  <textarea id="cc-input" placeholder="Paste your text here…" oninput="countChars()"></textarea>
+  <div class="stats-bar">
+    <div class="stat-card"><div class="label">Total Chars</div><div class="value" id="cc-total">0</div></div>
+    <div class="stat-card"><div class="label">No Spaces</div><div class="value" id="cc-nospace">0</div></div>
+    <div class="stat-card"><div class="label">Letters</div><div class="value" id="cc-letters">0</div></div>
+    <div class="stat-card"><div class="label">Digits</div><div class="value" id="cc-digits">0</div></div>
+    <div class="stat-card"><div class="label">Spaces</div><div class="value" id="cc-spaces">0</div></div>
+    <div class="stat-card"><div class="label">Special</div><div class="value" id="cc-special">0</div></div>
+  </div>
+  <div class="btn-row"><button class="btn export-btn" onclick="exportCharCountCSV()">📊 Export Stats CSV</button><button class="btn export-btn" onclick="exportTXT('cc-input','char_count')">📄 Export TXT</button></div>
+</div>
+
+<!-- ══════════ FIND & REPLACE ══════════ -->
+<div class="tool-panel" id="panel-find-replace">
+  <div class="panel-header"><h2>🔍 Find & Replace</h2><span class="badge utility">Utility</span></div>
+  <textarea id="fr-input" placeholder="Paste your text here…" oninput="highlightMatches()"></textarea>
+  <div class="input-row"><div class="input-group"><label>Find</label><input type="text" id="fr-find" placeholder="Search…" oninput="highlightMatches()"/></div><div class="input-group"><label>Replace With</label><input type="text" id="fr-replace" placeholder="Replace…"/></div></div>
+  <div class="btn-row"><button class="btn primary" onclick="doReplace()">Replace All</button><button class="btn accent2" onclick="doReplaceFirst()">Replace First</button><button class="btn" onclick="clearFR()">Clear</button></div>
+  <div class="result-box">
+    <div class="result-label">Preview <span id="fr-count" style="color:var(--text-dim);font-size:.66rem">0 matches</span><div class="label-actions"><button class="copy-btn" onclick="copyResult('fr-result')">Copy</button><button class="export-mini" onclick="exportTXT('fr-result','find_replace')">📄 TXT</button><button class="export-mini" onclick="exportCSV('fr-result','find_replace')">📊 CSV</button></div></div>
+    <div class="result-content" id="fr-result"></div>
+  </div>
+</div>
+
+<!-- ══════════ SORT LIST ══════════ -->
+<div class="tool-panel" id="panel-sort-list">
+  <div class="panel-header"><h2>📋 Sort List</h2><span class="badge utility">Utility</span></div>
+  <textarea id="sl-input" placeholder="Enter items, one per line…"></textarea>
+  <div class="input-row"><div class="input-group"><label>Order</label><select id="sl-order"><option value="asc">A → Z</option><option value="desc">Z → A</option></select></div><div class="input-group"><label>Type</label><select id="sl-type"><option value="alpha">Alphabetical</option><option value="numeric">Numeric</option><option value="length">By Length</option></select></div></div>
+  <div class="btn-row"><button class="btn primary" onclick="sortList()">Sort</button><button class="btn accent2" onclick="removeDuplicates()">Remove Duplicates</button><button class="btn" onclick="clearIO('sl-input','sl-result')">Clear</button></div>
+  <div class="result-box">
+    <div class="result-label">Sorted List<div class="label-actions"><button class="copy-btn" onclick="copyResult('sl-result')">Copy</button><button class="export-mini" onclick="exportTXT('sl-result','sorted_list')">📄 TXT</button><button class="export-mini" onclick="exportCSV('sl-result','sorted_list')">📊 CSV</button></div></div>
+    <div class="result-content" id="sl-result"></div>
+  </div>
+</div>
+
+<!-- ══════════ REVERSE LIST ══════════ -->
+<div class="tool-panel" id="panel-reverse-list">
+  <div class="panel-header"><h2>🔄 Reverse List</h2><span class="badge utility">Utility</span></div>
+  <textarea id="rl-input" placeholder="Enter items, one per line…"></textarea>
+  <div class="btn-row"><button class="btn primary" onclick="reverseList()">Reverse List</button><button class="btn accent2" onclick="reverseText()">Reverse Text</button><button class="btn accent3" onclick="reverseWords()">Reverse Words</button><button class="btn" onclick="clearIO('rl-input','rl-result')">Clear</button></div>
+  <div class="result-box">
+    <div class="result-label">Result<div class="label-actions"><button class="copy-btn" onclick="copyResult('rl-result')">Copy</button><button class="export-mini" onclick="exportTXT('rl-result','reversed')">📄 TXT</button><button class="export-mini" onclick="exportCSV('rl-result','reversed')">📊 CSV</button></div></div>
+    <div class="result-content" id="rl-result"></div>
+  </div>
+</div>
+
+<!-- ══════════ PREFIX / SUFFIX ══════════ -->
+<div class="tool-panel" id="panel-prefix-suffix">
+  <div class="panel-header"><h2>🏷️ Prefix / Suffix</h2><span class="badge utility">Utility</span></div>
+  <textarea id="ps-input" placeholder="Enter items, one per line…"></textarea>
+  <div class="input-row"><div class="input-group"><label>Prefix</label><input type="text" id="ps-prefix" placeholder="e.g. item_"/></div><div class="input-group"><label>Suffix</label><input type="text" id="ps-suffix" placeholder="e.g. .txt"/></div></div>
+  <div class="btn-row"><button class="btn primary" onclick="addPrefixSuffix()">Add Prefix / Suffix</button><button class="btn" onclick="clearIO('ps-input','ps-result')">Clear</button></div>
+  <div class="result-box">
+    <div class="result-label">Result<div class="label-actions"><button class="copy-btn" onclick="copyResult('ps-result')">Copy</button><button class="export-mini" onclick="exportTXT('ps-result','prefix_suffix')">📄 TXT</button><button class="export-mini" onclick="exportCSV('ps-result','prefix_suffix')">📊 CSV</button></div></div>
+    <div class="result-content" id="ps-result"></div>
+  </div>
+</div>
+
+<!-- ══════════ EMAIL EXTRACTOR ══════════ -->
+<div class="tool-panel" id="panel-email-extractor">
+  <div class="panel-header"><h2>📧 Email Extractor</h2><span class="badge extractor">Extractor</span></div>
+  <textarea id="ee-input" placeholder="Paste text containing emails…"></textarea>
+  <div class="btn-row"><button class="btn primary" onclick="extractEmails()">Extract Emails</button><button class="btn" onclick="clearExtractor('ee-input','ee-result','ee-tags','ee-count')">Clear</button></div>
+  <div class="result-box">
+    <div class="result-label">Emails <span id="ee-count" style="color:var(--text-dim);font-size:.66rem">0 found</span><div class="label-actions"><button class="copy-btn" onclick="copyExtractor('ee-result')">Copy</button><button class="export-mini" onclick="exportExtractorTXT('ee-result','emails')">📄 TXT</button><button class="export-mini" onclick="exportExtractorCSV('ee-result','emails','Email')">📊 CSV</button></div></div>
+    <div class="result-content" id="ee-result"><div class="tag-list" id="ee-tags"></div></div>
+  </div>
+</div>
+
+<!-- ══════════ PHONE EXTRACTOR ══════════ -->
+<div class="tool-panel" id="panel-phone-extractor">
+  <div class="panel-header"><h2>📱 Phone Extractor</h2><span class="badge extractor">Extractor</span></div>
+  <textarea id="pe-input" placeholder="Paste text containing phone numbers…"></textarea>
+  <div class="btn-row"><button class="btn primary" onclick="extractPhones()">Extract Numbers</button><button class="btn" onclick="clearExtractor('pe-input','pe-result','pe-tags','pe-count')">Clear</button></div>
+  <div class="result-box">
+    <div class="result-label">Numbers <span id="pe-count" style="color:var(--text-dim);font-size:.66rem">0 found</span><div class="label-actions"><button class="copy-btn" onclick="copyExtractor('pe-result')">Copy</button><button class="export-mini" onclick="exportExtractorTXT('pe-result','phones')">📄 TXT</button><button class="export-mini" onclick="exportExtractorCSV('pe-result','phones','Phone')">📊 CSV</button></div></div>
+    <div class="result-content" id="pe-result"><div class="tag-list" id="pe-tags"></div></div>
+  </div>
+</div>
+
+<!-- ══════════ URL EXTRACTOR ══════════ -->
+<div class="tool-panel" id="panel-url-extractor">
+  <div class="panel-header"><h2>🔗 URL Extractor</h2><span class="badge extractor">Extractor</span></div>
+  <textarea id="ue-input" placeholder="Paste text containing URLs…"></textarea>
+  <div class="btn-row"><button class="btn primary" onclick="extractURLs()">Extract URLs</button><button class="btn" onclick="clearExtractor('ue-input','ue-result','ue-tags','ue-count')">Clear</button></div>
+  <div class="result-box">
+    <div class="result-label">URLs <span id="ue-count" style="color:var(--text-dim);font-size:.66rem">0 found</span><div class="label-actions"><button class="copy-btn" onclick="copyExtractor('ue-result')">Copy</button><button class="export-mini" onclick="exportExtractorTXT('ue-result','urls')">📄 TXT</button><button class="export-mini" onclick="exportExtractorCSV('ue-result','urls','URL')">📊 CSV</button></div></div>
+    <div class="result-content" id="ue-result"><div class="tag-list" id="ue-tags"></div></div>
+  </div>
+</div>
+
+</main>
+</div><!-- /layout -->
+
+<!-- ═══════════════════════════════════════════════════════
+     ALL JAVASCRIPT
+     ═══════════════════════════════════════════════════════ -->
+<script>
+/* ═══ NAVIGATION ═══ */
+function switchTool(tool){
+  document.querySelectorAll('.tool-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tool-btn').forEach(b=>{b.classList.remove('active');b.classList.remove('wiki-act')});
+  document.getElementById('panel-'+tool).classList.add('active');
+  const btn=document.querySelector('[data-tool="'+tool+'"]');
+  btn.classList.add('active');
+  if(tool==='wiki'){btn.classList.add('wiki-act');setTimeout(syncH,50)}
+}
+
+/* ═══ TOAST ═══ */
+let _tt;
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),1800)}
+
+/* ═══ GENERIC HELPERS ═══ */
+function copyResult(id){
+  const el=document.getElementById(id);
+  navigator.clipboard.writeText(el.innerText||el.textContent).then(()=>{
+    const b=el.closest('.result-box')?.querySelector('.copy-btn');
+    if(b){b.textContent='✓ Copied';b.classList.add('copied');setTimeout(()=>{b.textContent='Copy';b.classList.remove('copied')},1100)}
+    showToast('Copied!')
+  })
+}
+function copyExtractor(id){
+  const el=document.getElementById(id);
+  navigator.clipboard.writeText(el.getAttribute('data-plain')||el.innerText||'').then(()=>{
+    const b=el.closest('.result-box')?.querySelector('.copy-btn');
+    if(b){b.textContent='✓ Copied';b.classList.add('copied');setTimeout(()=>{b.textContent='Copy';b.classList.remove('copied')},1100)}
+    showToast('Copied!')
+  })
+}
+function clearIO(i,o){document.getElementById(i).value='';document.getElementById(o).innerHTML='';const e=document.getElementById(i);if(e.oninput)e.oninput()}
+function swapIO(i,o){const a=document.getElementById(i),b=document.getElementById(o);const t=a.value;a.value=b.innerText;b.innerText=t}
+function clearExtractor(i,r,tg,ct){document.getElementById(i).value='';document.getElementById(tg).innerHTML='';document.getElementById(ct).textContent='0 found';document.getElementById(r).setAttribute('data-plain','')}
+
+/* ═══ EXPORT ENGINE ═══ */
+function _dl(fn,data,mime){const b=new Blob([data],{type:mime}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);showToast('Downloaded: '+fn)}
+function _stamp(){return new Date().toISOString().slice(0,10)+'_'+Date.now().toString(36)}
+
+function exportTXT(elId,name){const el=document.getElementById(elId);const t=(el.tagName==='TEXTAREA')?el.value:(el.getAttribute('data-plain')||el.innerText||'');if(!t.trim())return showToast('Nothing to export');_dl(name+'_'+_stamp()+'.txt',t,'text/plain')}
+function exportCSV(elId,name){const el=document.getElementById(elId);const t=el.getAttribute('data-plain')||el.innerText||'';if(!t.trim())return showToast('Nothing to export');const lines=t.split('\n').filter(l=>l.trim());const hasC=lines.some(l=>l.includes(','));let csv;if(hasC){csv=lines.map(l=>l.split(',').map(c=>'"'+c.trim().replace(/"/g,'""')+'"').join(',')).join('\n')}else{csv='"#","Value"\n'+lines.map((l,i)=>'"'+(i+1)+'","'+l.replace(/"/g,'""')+'"').join('\n')}; _dl(name+'_'+_stamp()+'.csv',csv,'text/csv')}
+function exportExtractorTXT(elId,name){const p=document.getElementById(elId).getAttribute('data-plain')||'';if(!p.trim())return showToast('Nothing to export');_dl(name+'_'+_stamp()+'.txt',p,'text/plain')}
+function exportExtractorCSV(elId,name,col){const p=document.getElementById(elId).getAttribute('data-plain')||'';if(!p.trim())return showToast('Nothing to export');const items=p.split('\n').filter(l=>l.trim());_dl(name+'_'+_stamp()+'.csv','"#","'+col+'"\n'+items.map((v,i)=>'"'+(i+1)+'","'+v.replace(/"/g,'""')+'"').join('\n'),'text/csv')}
+function exportWordCountCSV(){const r=[['Words','wc-words'],['Characters','wc-chars'],['Chars (no spaces)','wc-chars-ns'],['Lines','wc-lines'],['Sentences','wc-sentences'],['Paragraphs','wc-para']];_dl('word_stats_'+_stamp()+'.csv','"Metric","Count"\n'+r.map(x=>'"'+x[0]+'","'+document.getElementById(x[1]).textContent+'"').join('\n'),'text/csv')}
+function exportCharCountCSV(){const r=[['Total','cc-total'],['No Spaces','cc-nospace'],['Letters','cc-letters'],['Digits','cc-digits'],['Spaces','cc-spaces'],['Special','cc-special']];_dl('char_stats_'+_stamp()+'.csv','"Metric","Count"\n'+r.map(x=>'"'+x[0]+'","'+document.getElementById(x[1]).textContent+'"').join('\n'),'text/csv')}
+function exportWikiTXT(){const t=document.getElementById('wikiEditor').value;if(!t.trim())return showToast('Nothing to export');_dl('wikitext_'+_stamp()+'.txt',t,'text/plain')}
+function exportWikiCSV(){const t=document.getElementById('wikiEditor').value;if(!t.trim())return showToast('Nothing to export');_dl('wikitext_'+_stamp()+'.csv','"Line #","Wikitext"\n'+t.split('\n').map((l,i)=>'"'+(i+1)+'","'+l.replace(/"/g,'""')+'"').join('\n'),'text/csv')}
+
+/* ═══ COOL TEXT ═══ */
+const coolStyles=[{name:'Bold Stars',fn:t=>[...t].map(c=>c===' '?' ':'★'+c).join('')},{name:'Spaced Out',fn:t=>t.split('').join(' ─ ')},{name:'Wavy Bars',fn:t=>'〰️ '+t.toUpperCase()+' 〰️'},{name:'Fire',fn:t=>'🔥 '+t.toUpperCase()+' 🔥'},{name:'Diamond',fn:t=>'◆ '+t+' ◆'},{name:'Arrow',fn:t=>'➤ '+t+' ◀'},{name:'Bracket',fn:t=>'【 '+t.toUpperCase()+' 】'},{name:'Sparkle',fn:t=>'✦ '+t+' ✦'},{name:'Crown',fn:t=>'👑 '+t+' 👑'},{name:'Zigzag',fn:t=>t.split('').map((c,i)=>i%2===0?c.toUpperCase():c.toLowerCase()).join('')},{name:'Dots',fn:t=>t.split('').join('・')},{name:'Dashes',fn:t=>'— '+t+' —'},{name:'Stars Wrap',fn:t=>'★ ★ ★ '+t+' ★ ★ ★'},{name:'Arrows',fn:t=>'→ '+t+' →'},{name:'Quotes',fn:t=>'「 '+t+' 」'},{name:'Wave',fn:t=>'〜 '+t+' 〜'},{name:'Lightning',fn:t=>'⚡ '+t.toUpperCase()+' ⚡'},{name:'Infinity',fn:t=>'∞ '+t+' ∞'},{name:'Music',fn:t=>'♫ '+t+' ♫'},{name:'Shield',fn:t=>'🛡️ '+t.toUpperCase()+' 🛡️'}];
+let _ss=0;
+(function(){document.getElementById('style-grid').innerHTML=coolStyles.map((s,i)=>'<div class="style-card'+(i===0?' selected':'')+'" onclick="selS('+i+')"><div class="preview-text">'+s.fn('Hello')+'</div><div class="style-name">'+s.name+'</div></div>').join('')})();
+function selS(i){_ss=i;document.querySelectorAll('.style-card').forEach((c,x)=>c.classList.toggle('selected',x===i));updCool()}
+function generateCoolPreviews(){const v=document.getElementById('cool-input').value||'Hello';document.querySelectorAll('.style-card').forEach((c,i)=>c.querySelector('.preview-text').textContent=coolStyles[i].fn(v));updCool()}
+function updCool(){document.getElementById('cool-result').textContent=coolStyles[_ss].fn(document.getElementById('cool-input').value||'Hello')}
+
+/* ═══ CASE ═══ */
+function capitalizeText(){document.getElementById('cap-result').textContent=document.getElementById('cap-input').value.split(/(\s+)/).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join('')}
+function uppercaseText(){document.getElementById('up-result').textContent=document.getElementById('up-input').value.toUpperCase()}
+function lowercaseText(){document.getElementById('low-result').textContent=document.getElementById('low-input').value.toLowerCase()}
+
+/* ═══ COUNTERS ═══ */
+function countWords(){const t=document.getElementById('wc-input').value;document.getElementById('wc-words').textContent=t.trim()==''?0:t.trim().split(/\s+/).length;document.getElementById('wc-chars').textContent=t.length;document.getElementById('wc-chars-ns').textContent=t.replace(/\s/g,'').length;document.getElementById('wc-lines').textContent=t===''?0:t.split('\n').length;document.getElementById('wc-sentences').textContent=(t.match(/[.!?]+/g)||[]).length||(t.trim()?1:0);document.getElementById('wc-para').textContent=t.trim()===''?0:t.trim().split(/\n\s*\n/).length}
+function countChars(){const t=document.getElementById('cc-input').value;document.getElementById('cc-total').textContent=t.length;document.getElementById('cc-nospace').textContent=t.replace(/\s/g,'').length;document.getElementById('cc-letters').textContent=(t.match(/[a-zA-Z]/g)||[]).length;document.getElementById('cc-digits').textContent=(t.match(/[0-9]/g)||[]).length;document.getElementById('cc-spaces').textContent=(t.match(/\s/g)||[]).length;document.getElementById('cc-special').textContent=(t.match(/[^a-zA-Z0-9\s]/g)||[]).length}
+
+/* ═══ FIND & REPLACE ═══ */
+function _esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function _escRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+function highlightMatches(){const text=document.getElementById('fr-input').value,find=document.getElementById('fr-find').value,r=document.getElementById('fr-result');if(!find){r.innerHTML=_esc(text);document.getElementById('fr-count').textContent='0 matches';return}const m=text.match(new RegExp(_escRe(find),'gi'));document.getElementById('fr-count').textContent=(m?m.length:0)+' match'+(m&&m.length!==1?'es':'');r.innerHTML=_esc(text).replace(new RegExp(_escRe(_esc(find)),'gi'),'<span class="highlight-match">$&</span>')}
+function doReplace(){const inp=document.getElementById('fr-input'),find=document.getElementById('fr-find').value;if(!find)return showToast('Enter a search term');inp.value=inp.value.replace(new RegExp(_escRe(find),'gi'),document.getElementById('fr-replace').value);highlightMatches();showToast('All replaced!')}
+function doReplaceFirst(){const inp=document.getElementById('fr-input'),find=document.getElementById('fr-find').value;if(!find)return showToast('Enter a search term');inp.value=inp.value.replace(new RegExp(_escRe(find),'i'),document.getElementById('fr-replace').value);highlightMatches();showToast('First replaced!')}
+function clearFR(){['fr-input','fr-find','fr-replace'].forEach(id=>document.getElementById(id).value='');document.getElementById('fr-result').innerHTML='';document.getElementById('fr-count').textContent='0 matches'}
+
+/* ═══ SORT / REVERSE / PREFIX ═══ */
+function sortList(){let a=document.getElementById('sl-input').value.split('\n').filter(l=>l.trim());const o=document.getElementById('sl-order').value,ty=document.getElementById('sl-type').value;if(ty==='alpha')a.sort((x,y)=>x.localeCompare(y,undefined,{sensitivity:'base'}));else if(ty==='numeric')a.sort((x,y)=>parseFloat(x)-parseFloat(y));else a.sort((x,y)=>x.length-y.length);if(o==='desc')a.reverse();document.getElementById('sl-result').textContent=a.join('\n')}
+function removeDuplicates(){const u=[...new Set(document.getElementById('sl-input').value.split('\n').map(l=>l.trim()))].filter(l=>l);document.getElementById('sl-input').value=u.join('\n');document.getElementById('sl-result').textContent=u.join('\n');showToast('Duplicates removed!')}
+function reverseList(){document.getElementById('rl-result').textContent=document.getElementById('rl-input').value.split('\n').reverse().join('\n')}
+function reverseText(){document.getElementById('rl-result').textContent=document.getElementById('rl-input').value.split('').reverse().join('')}
+function reverseWords(){document.getElementById('rl-result').textContent=document.getElementById('rl-input').value.split(/(\s+)/).reverse().join('')}
+function addPrefixSuffix(){const lines=document.getElementById('ps-input').value.split('\n').filter(l=>l.trim());document.getElementById('ps-result').textContent=lines.map(l=>document.getElementById('ps-prefix').value+l.trim()+document.getElementById('ps-suffix').value).join('\n')}
+
+/* ═══ EXTRACTORS ═══ */
+function extractEmails(){const u=[...new Set((document.getElementById('ee-input').value.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g)||[]))];document.getElementById('ee-count').textContent=u.length+' found';document.getElementById('ee-tags').innerHTML=u.map(e=>'<span class="tag email">'+e+'</span>').join('');document.getElementById('ee-result').setAttribute('data-plain',u.join('\n'))}
+function extractPhones(){const raw=document.getElementById('pe-input').value.match(/(?:\+?\d{1,3}[\s\-.]?)?(?:\(?\d{2,5}\)?[\s\-.]?)?(?:\d[\s\-.]?){6,12}\d/g)||[];const u=[...new Set(raw.filter(m=>(m.match(/\d/g)||[]).length>=7).map(m=>m.trim()))];document.getElementById('pe-count').textContent=u.length+' found';document.getElementById('pe-tags').innerHTML=u.map(p=>'<span class="tag phone">'+p+'</span>').join('');document.getElementById('pe-result').setAttribute('data-plain',u.join('\n'))}
+function extractURLs(){const u=[...new Set((document.getElementById('ue-input').value.match(/https?:\/\/[^\s<>"')\]]+|(?:www\.)[^\s<>"')\]]+/gi)||[]).map(x=>x.replace(/[.,;:!?]+$/,'')))];document.getElementById('ue-count').textContent=u.length+' found';document.getElementById('ue-tags').innerHTML=u.map(v=>'<span class="tag">'+v+'</span>').join('');document.getElementById('ue-result').setAttribute('data-plain',u.join('\n'))}
+
+/* ═══════════════════════════════════════════════════════
+   WIKI EDITOR — SYNTAX HIGHLIGHT ENGINE
+   ═══════════════════════════════════════════════════════ */
+const wTA=document.getElementById('wikiEditor');
+const wPR=document.getElementById('wikiHighlight');
+const wWR=document.getElementById('wikiCodeWrap');
+
+/* ── height sync ── */
+function syncH(){
+  wTA.style.height='auto';
+  const h=Math.max(wTA.scrollHeight,340);
+  wTA.style.height=h+'px';
+  wPR.style.height=h+'px';
+  wWR.style.height=h+'px';
+}
+/* ── scroll sync ── */
+function syncScroll(){wPR.scrollTop=wTA.scrollTop;wPR.scrollLeft=wTA.scrollLeft}
+
+/* ── HIGHLIGHTER ── */
+function runHL(){
+  let t=wTA.value;
+  // 1. escape
+  t=t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // 2. tokens — ORDER MATTERS
+  // comments
+  t=t.replace(/(&lt;!--[\s\S]*?--&gt;)/g,'<span class="t-cm">$1</span>');
+  // headers
+  t=t.replace(/^(=+\s*)(.*?)(\s*=+)$/gm,'<span class="t-hd">$1$2$3</span>');
+  // bold-italic
+  t=t.replace(/'''''(.*?)'''''/g,'<span class="t-bd"><span class="t-it">\'\'\'\'\'$1\'\'\'\'\'</span></span>');
+  // bold
+  t=t.replace(/'''(.*?)'''/g,'<span class="t-bd">\'\'\'$1\'\'\'</span>');
+  // italic
+  t=t.replace(/''(.*?)''/g,'<span class="t-it">\'\'$1\'\'</span>');
+  // internal links
+  t=t.replace(/(\[\[.*?\]\])/g,'<span class="t-lk">$1</span>');
+  // external links
+  t=t.replace(/(\[https?:\/\/[^\]]*\])/g,'<span class="t-lk">$1</span>');
+  // multi-line templates (must come before single-line)
+  t=t.replace(/(\{\{[\s\S]*?\}\})/g,'<span class="t-tp">$1</span>');
+  // table blocks
+  t=t.replace(/(\{\|[\s\S]*?\|\})/g,'<span class="t-tb">$1</span>');
+  // list markers
+  t=t.replace(/^([*#;:]+)/gm,'<span class="t-ls">$1</span>');
+  // nowiki
+  t=t.replace(/(&lt;nowiki&gt;.*?&lt;\/nowiki&gt;)/g,'<span class="t-cm">$1</span>');
+  // ref tags
+  t=t.replace(/(&lt;ref[^&]*&gt;[\s\S]*?&lt;\/ref&gt;)/g,'<span class="t-tp">$1</span>');
+  t=t.replace(/(&lt;ref[^/]*\/&gt;)/g,'<span class="t-tp">$1</span>');
+
+  wPR.innerHTML=t+'\n';
+  updWikiStats();
+  syncH();
+}
+
+/* ── stats ── */
+function updWikiStats(){const v=wTA.value;document.getElementById('wikiStats').textContent='Lines: '+(v===''?0:v.split('\n').length)+' · Words: '+(v.trim()===''?0:v.trim().split(/\s+/).length)+' · Chars: '+v.length}
+
+/* ── TAB → 2 spaces ── */
+wTA.addEventListener('keydown',function(e){if(e.key==='Tab'){e.preventDefault();const s=wTA.selectionStart;wTA.value=wTA.value.substring(0,s)+'  '+wTA.value.substring(wTA.selectionEnd);wTA.selectionStart=wTA.selectionEnd=s+2;runHL()}});
+/* ── events ── */
+wTA.addEventListener('input',runHL);
+wTA.addEventListener('scroll',syncScroll);
+window.addEventListener('resize',syncScroll);
+runHL(); // init
+
+/* ═══ WIKI TOOLBAR ACTIONS ═══ */
+function wikiWrap(before,after,ph){
+  const s=wTA.selectionStart,e=wTA.selectionEnd;
+  const sel=wTA.value.substring(s,e)||ph;
+  wTA.value=wTA.value.substring(0,s)+before+sel+after+wTA.value.substring(e);
+  wTA.focus();const ns=s+before.length;wTA.setSelectionRange(ns,ns+sel.length);
+  runHL();
+}
+function wikiLine(before,ph,after){
+  const s=wTA.selectionStart,text=wTA.value;
+  const ls=text.lastIndexOf('\n',s-1)+1;
+  const leR=text.indexOf('\n',s);const le=leR===-1?text.length:leR;
+  const cl=text.substring(ls,le);
+  // toggle
+  if(cl.startsWith(before.trim())){
+    const stripped=cl.slice(before.length);
+    wTA.value=text.substring(0,ls)+stripped+text.substring(le);
+    wTA.focus();wTA.setSelectionRange(ls,ls+stripped.length);runHL();return;
+  }
+  const sel=wTA.value.substring(wTA.selectionStart,wTA.selectionEnd)||cl||ph;
+  wTA.value=text.substring(0,ls)+before+sel+(after||'')+text.substring(le);
+  wTA.focus();runHL();
+}
+/* point inserts */
+function _ins(txt){const s=wTA.selectionStart,e=wTA.selectionEnd;wTA.value=wTA.value.substring(0,s)+txt+wTA.value.substring(e);wTA.focus();wTA.setSelectionRange(s+txt.length,s+txt.length);runHL()}
+function _sod(d){return wTA.value.substring(wTA.selectionStart,wTA.selectionEnd)||d}
+
+function wikiInsertLink()      {wikiWrap('[[',']]','Page Name')}
+function wikiInsertExtLink()   {wikiWrap('[https://example.com ',']','Link Text')}
+function wikiInsertImage()     {_ins('[[File:'+_sod('image.jpg')+'|thumb|Caption here]]')}
+function wikiInsertGallery()   {_ins('<gallery>\nImage1.jpg|Caption 1\nImage2.jpg|Caption 2\n</gallery>')}
+function wikiInsertTemplate()  {_ins('{{Template Name\n| param1 = value1\n| param2 = value2\n}}')}
+function wikiInsertRef()       {_ins('<ref name="source1">[https://example.com Source Title]</ref>')}
+function wikiInsertCategory()  {_ins('[[Category:'+_sod('Category Name')+']]')}
+function wikiInsertComment()   {wikiWrap('<!-- ',' -->','comment')}
+function wikiInsertRedirect()  {_ins('#REDIRECT [[Target Page]]')}
+function wikiInsertSig()       {_ins('~~~~')}
+function wikiInsertTable()     {_ins('{| class="wikitable"\n|-\n! Header 1 !! Header 2 !! Header 3\n|-\n| Cell 1 || Cell 2 || Cell 3\n|-\n| Cell 4 || Cell 5 || Cell 6\n|}')}
+function wikiInsertInfobox(){
+  const title=_sod('Title');
+  _ins('{| class="infobox"\n|-\n! colspan="2" | \'\'\''+title+'\'\'\'\n|-\n| Name || Value\n|-\n| Born || Date\n|-\n| Country || Country\n|}');
+}
+function wikiInsertRefList()   {_ins('\n== References ==\n{{Reflist}}\n')}
+function wikiCSVtoTable(){
+  const raw=prompt('Paste your CSV data (comma or tab separated):');
+  if(!raw)return;
+  const rows=raw.trim().split('\n');
+  let wiki='{| class="wikitable"\n|-\n';
+  rows.forEach((r,i)=>{const cells=r.split(/,|\t/).map(c=>c.trim());if(i===0)wiki+='! '+cells.join(' !! ')+'\n';else wiki+='|-\n| '+cells.join(' || ')+'\n'});
+  wiki+='|}';
+  _ins(wiki);
+}
+function wikiClear(){if(wTA.value.trim()&&!confirm('Clear everything?'))return;wTA.value='';runHL()}
+function wikiCopy(){navigator.clipboard.writeText(wTA.value).then(()=>showToast('Wikitext copied!'))}
+</script>
+</body>
+</html>
